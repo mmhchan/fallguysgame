@@ -11,16 +11,20 @@ theme_update(
   plot.background = element_rect(color = "black", fill = "#F1F5F7")
 )
 
-x <- as.Date('2020-08-01')
-y <- c(1, 1000, 10000, 100000, 1000000)
-labels <- c(1, 1000, 10000, 100000, 1000000)
-
-plot.labels <- tibble(x, y, labels)
+labels <- 
+  tibble(
+    label = c(
+      "500000",
+      "1000000"
+      ),
+    x = c(as.Date("2020-08-01"), as.Date("2020-08-01")),
+    y = c(500000, 1000000)
+)
 
 df_followers %>%
   ggplot(aes(x = date, y = followers)) +
   geom_area() +
-  geom_richtext(data = plot.labels, aes(x = x, y = y, label = labels)) +
+  geom_richtext(data = labels, aes(x = x, y = y, label = label), fill = NA, label.color = NA) +
   labs(
     title = "Fall Guys"
   ) +
