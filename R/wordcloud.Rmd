@@ -1,0 +1,92 @@
+---
+title: "FallGuysGame - Twitter Word Cloud"
+author: "Michael Chan"
+date: "23rd of August 2020"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r prep, message=FALSE}
+## packages
+library(tidyverse)
+library(tidytext)
+library(ggwordcloud)
+library(extrafont)
+library(cowplot)
+library(pdftools)
+
+theme_set(theme_void(base_family = "Roboto Mono", base_size = 16))
+
+theme_update(
+    panel.background = element_rect(fill = "#EBEBEB", color = NA),
+    plot.background = element_rect(fill = "#EBEBEB", color = NA),
+    plot.caption = element_text(color = "grey60", size = 9, family = "Fira Code", face = "italic", 
+                                hjust = .5, margin = margin(15, 0, 0, 0))
+)
+```
+
+```{r data}
+df_tweets_raw <- read_csv(here::here("data", "tweets.csv"))
+```
+
+```{r data-prep}
+words <- df_tweets_raw %>%
+  filter(is_retweet == FALSE) %>%
+  select(text) %>%
+  unnest_tweets(word, text, strip_punct = FALSE) %>%
+  anti_join(get_stopwords()) %>%
+  filter(!str_detect(word, "(http.+|^.$|^[0-9a-f]+$)")) %>%
+  count(word, sort = TRUE) %>%
+  mutate(angle = 90 * sample(c(0, 1), n(), replace = TRUE, prob = c(60, 40)),
+         angle = ifelse(word %in% c("fall", "guys", "@mediatonic", "@devolverdigital", "@oliverage24"), 0, angle),
+         word = recode(word, 
+                       "fall" = "FALL", 
+                       "guys" = "GUYS", 
+                       "ps4" = "PS4",
+                       "twitch" = "Twitch",
+                       "steam" = "Steam",
+                       "discord" = "Discord",
+                       "twitter" = "Twitter",
+                       "@mediatonic" = "@Mediatonic",
+                       "@oliverage24" = "@OliverAge24"),
+         )
+```
+
+```{r wordcloud}
+path <- here::here("plots", "wordcloud")
+
+words[0:350, ] %>%
+  ggplot(
+    aes(
+      label = word, 
+      size = n, 
+      color = n, 
+      angle = angle
+      )
+    ) +
+  geom_text_wordcloud_area(
+    family = "Titan One", 
+    mask = png::readPNG(here::here("images", "fallguysmask.png")), 
+    rm_outside = TRUE,
+    seed = 42
+  ) +
+  scale_size_area(max_size = 24) +
+  scale_color_gradient(low = "#53BEC2", high = "#F83E9E") +
+  labs(caption = "Visualisation: Michael Chan • Data: @FallGuysGame Tweets")+
+  ggsave(here::here("plots", "wordcloud.pdf"), width = 10, height = 9, device = cairo_pdf)
+
+pdf_convert(pdf = glue::glue("{path}.pdf"), format = "png", dpi = 350,
+            filenames = glue::glue("{path}.png"))
+```
+
+***
+
+```{r session}
+Sys.time()
+git2r::repository()
+sessionInfo()
+```
